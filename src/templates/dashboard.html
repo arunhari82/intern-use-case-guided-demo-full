@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thoughts Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1f2e 0%, #16213e 100%);
+      border-bottom: 1px solid #2d3748;
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
+    header .subtitle { color: #718096; font-size: 0.9rem; }
+    header .badge {
+      margin-left: auto;
+      background: #2d6a4f;
+      color: #95d5b2;
+      padding: 0.3rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── KPI Cards ─────────────────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .kpi {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+    }
+    .kpi .label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem; }
+    .kpi .value { font-size: 2rem; font-weight: 700; }
+    .kpi.total   .value { color: #63b3ed; }
+    .kpi.approved .value { color: #68d391; }
+    .kpi.rejected .value { color: #fc8181; }
+    .kpi.review   .value { color: #f6e05e; }
+    .kpi.removed  .value { color: #b794f4; }
+    .kpi.rate     .value { color: #4fd1c5; }
+    .kpi.up       .value { color: #68d391; }
+    .kpi.down     .value { color: #fc8181; }
+
+    /* ── Section titles ─────────────────────────────────────────────────── */
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #cbd5e0;
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    /* ── Two-column layout ──────────────────────────────────────────────── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ── Tables ─────────────────────────────────────────────────────────── */
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-header { padding: 1rem 1.25rem; border-bottom: 1px solid #2d3748; }
+    .card-header h2 { border: none; margin: 0; padding: 0; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      background: #16213e;
+      color: #718096;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: .65rem 1rem;
+      text-align: left;
+    }
+    td { padding: .65rem 1rem; border-bottom: 1px solid #1e2533; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #1e2d3d; }
+
+    .content-cell { max-width: 280px; }
+    .content-text {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      color: #e2e8f0;
+    }
+    .author-name { font-weight: 600; color: #90cdf4; }
+    .author-bio  { font-size: 0.75rem; color: #718096; }
+
+    /* Status badges */
+    .badge-status {
+      display: inline-block;
+      padding: .2rem .6rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+    }
+    .s-APPROVED  { background: #1c4532; color: #68d391; }
+    .s-REJECTED  { background: #742a2a; color: #fc8181; }
+    .s-IN_REVIEW { background: #744210; color: #f6e05e; }
+    .s-REMOVED   { background: #322659; color: #b794f4; }
+
+    /* Rating numbers */
+    .up   { color: #68d391; font-weight: 700; }
+    .down { color: #fc8181; font-weight: 700; }
+    .net-pos { color: #68d391; font-weight: 700; }
+    .net-neg { color: #fc8181; font-weight: 700; }
+    .net-zero { color: #718096; }
+
+    /* Similarity score bar */
+    .sim-wrap { display: flex; align-items: center; gap: .5rem; }
+    .sim-bar-bg { flex: 1; background: #2d3748; border-radius: 9999px; height: 6px; }
+    .sim-bar    { height: 6px; border-radius: 9999px; }
+    .sim-good   { background: #68d391; }
+    .sim-medium { background: #f6e05e; }
+    .sim-bad    { background: #fc8181; }
+    .sim-val    { font-size: 0.78rem; color: #a0aec0; min-width: 42px; }
+
+    /* Full thoughts table */
+    .full-table-wrap { overflow-x: auto; margin-bottom: 2rem; }
+    .full-table-wrap .card { border-radius: 12px; }
+
+    /* Eval stats table */
+    .eval-table td:not(:first-child) { text-align: right; }
+    .eval-table th:not(:first-child) { text-align: right; }
+
+    /* Rank column */
+    .rank { color: #f6e05e; font-weight: 700; font-size: 1rem; text-align: center; }
+
+    /* ── Filter bar ─────────────────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .filter-label { font-size: 0.78rem; color: #718096; text-transform: uppercase; letter-spacing: .05em; margin-right: .25rem; }
+    .filter-btn {
+      display: inline-block;
+      padding: .35rem .9rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background .15s, color .15s;
+      cursor: pointer;
+    }
+    .filter-btn.all      { background: #2d3748; color: #cbd5e0; border-color: #4a5568; }
+    .filter-btn.approved { background: #1c4532; color: #68d391; border-color: #2f6b4f; }
+    .filter-btn.rejected { background: #742a2a; color: #fc8181; border-color: #9b3535; }
+    .filter-btn.pending  { background: #744210; color: #f6e05e; border-color: #9c5a15; }
+    .filter-btn.removed  { background: #322659; color: #b794f4; border-color: #4c3575; }
+    .filter-btn.active   { outline: 2px solid #fff; outline-offset: 2px; }
+    .filter-btn:hover    { opacity: .85; }
+
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #4a5568;
+      font-size: 0.78rem;
+      border-top: 1px solid #2d3748;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Thoughts Dashboard</h1>
+    <div class="subtitle">Positive Thoughts Application — Report</div>
+  </div>
+  <div class="badge">Live Data</div>
+</header>
+
+<main>
+
+  <!-- ── KPI Row ──────────────────────────────────────────────────────── -->
+  <div class="kpi-grid">
+    <div class="kpi total">
+      <div class="label">Total Thoughts</div>
+      <div class="value">{{ summary.total }}</div>
+    </div>
+    <div class="kpi approved">
+      <div class="label">Approved</div>
+      <div class="value">{{ summary.approved }}</div>
+    </div>
+    <div class="kpi rejected">
+      <div class="label">Rejected</div>
+      <div class="value">{{ summary.rejected }}</div>
+    </div>
+    <div class="kpi review">
+      <div class="label">In Review</div>
+      <div class="value">{{ summary.in_review }}</div>
+    </div>
+    <div class="kpi removed">
+      <div class="label">Removed</div>
+      <div class="value">{{ summary.removed }}</div>
+    </div>
+    <div class="kpi rate">
+      <div class="label">Approval Rate</div>
+      <div class="value">{{ summary.approval_rate }}%</div>
+    </div>
+    <div class="kpi up">
+      <div class="label">Total Thumbs Up</div>
+      <div class="value">{{ summary.total_thumbs_up }}</div>
+    </div>
+    <div class="kpi down">
+      <div class="label">Total Thumbs Down</div>
+      <div class="value">{{ summary.total_thumbs_down }}</div>
+    </div>
+  </div>
+
+  <!-- ── Top Rated + Eval Stats ───────────────────────────────────────── -->
+  <div class="two-col">
+
+    <!-- Top Rated Thoughts -->
+    <div class="card">
+      <div class="card-header"><h2>Top 10 Rated Thoughts</h2></div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Content</th>
+            <th>Author</th>
+            <th>Up</th>
+            <th>Down</th>
+            <th>Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in top_thoughts %}
+          <tr>
+            <td class="rank">{{ loop.index }}</td>
+            <td class="content-cell"><div class="content-text">{{ t.content }}</div></td>
+            <td><div class="author-name">{{ t.author }}</div></td>
+            <td class="up">+{{ t.thumbs_up }}</td>
+            <td class="down">-{{ t.thumbs_down }}</td>
+            <td class="{% if t.net_rating > 0 %}net-pos{% elif t.net_rating < 0 %}net-neg{% else %}net-zero{% endif %}">
+              {{ t.net_rating }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" style="text-align:center;color:#718096;padding:2rem;">No approved thoughts found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Evaluation Stats -->
+    <div class="card">
+      <div class="card-header"><h2>AI Evaluation Statistics</h2></div>
+      <table class="eval-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Count</th>
+            <th>Avg Score</th>
+            <th>Min</th>
+            <th>Max</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in eval_stats %}
+          <tr>
+            <td><span class="badge-status s-{{ e.status }}">{{ e.status }}</span></td>
+            <td style="text-align:right">{{ e.count }}</td>
+            <td style="text-align:right">
+              {% set pct = (e.avg_score | float * 100) | int %}
+              <div class="sim-wrap">
+                <div class="sim-bar-bg">
+                  <div class="sim-bar {% if e.avg_score | float < 0.5 %}sim-good{% elif e.avg_score | float < 0.85 %}sim-medium{% else %}sim-bad{% endif %}"
+                       style="width: {{ pct }}%"></div>
+                </div>
+                <span class="sim-val">{{ e.avg_score }}</span>
+              </div>
+            </td>
+            <td style="text-align:right">{{ e.min_score }}</td>
+            <td style="text-align:right">{{ e.max_score }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" style="text-align:center;color:#718096;padding:2rem;">No evaluation data found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div style="padding: 1rem 1.25rem; border-top: 1px solid #2d3748; font-size: 0.78rem; color: #718096;">
+        Similarity score: &lt;0.5 = high quality &nbsp;|&nbsp; &ge;0.85 = rejected threshold
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Full Thought Listing ──────────────────────────────────────────── -->
+  <div class="full-table-wrap">
+    <div class="card">
+      <div class="card-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+        <h2 style="margin:0; padding:0; border:none;">
+          {% if active_filter == 'all' %}
+            All Thoughts
+          {% else %}
+            Thoughts &mdash; <span class="badge-status s-{{ active_filter | upper }}">{{ active_filter | upper }}</span>
+          {% endif %}
+          <span style="font-size:0.8rem; font-weight:400; color:#718096; margin-left:.5rem;">({{ all_thoughts | length }} shown)</span>
+        </h2>
+        <div class="filter-bar" style="margin:0;">
+          <span class="filter-label">Filter:</span>
+          <a href="/?status=all"      class="filter-btn all      {% if active_filter == 'all'      %}active{% endif %}">All</a>
+          <a href="/?status=approved" class="filter-btn approved {% if active_filter == 'approved' %}active{% endif %}">Approved</a>
+          <a href="/?status=pending"  class="filter-btn pending  {% if active_filter == 'pending' or active_filter == 'in_review' %}active{% endif %}">Pending</a>
+          <a href="/?status=rejected" class="filter-btn rejected {% if active_filter == 'rejected' %}active{% endif %}">Rejected</a>
+          <a href="/?status=removed"  class="filter-btn removed  {% if active_filter == 'removed'  %}active{% endif %}">Removed</a>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Content</th>
+            <th>Author</th>
+            <th>Status</th>
+            <th>Up</th>
+            <th>Down</th>
+            <th>Net</th>
+            <th>Similarity</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in all_thoughts %}
+          <tr>
+            <td class="content-cell"><div class="content-text">{{ t.content }}</div></td>
+            <td>
+              <div class="author-name">{{ t.author }}</div>
+            </td>
+            <td><span class="badge-status s-{{ t.status }}">{{ t.status }}</span></td>
+            <td class="up">{{ t.thumbs_up }}</td>
+            <td class="down">{{ t.thumbs_down }}</td>
+            <td class="{% if t.net_rating > 0 %}net-pos{% elif t.net_rating < 0 %}net-neg{% else %}net-zero{% endif %}">
+              {{ t.net_rating }}
+            </td>
+            <td>
+              {% if t.similarity_score is not none %}
+                {% set pct = (t.similarity_score | float * 100) | int %}
+                <div class="sim-wrap">
+                  <div class="sim-bar-bg">
+                    <div class="sim-bar {% if t.similarity_score | float < 0.5 %}sim-good{% elif t.similarity_score | float < 0.85 %}sim-medium{% else %}sim-bad{% endif %}"
+                         style="width: {{ pct }}%"></div>
+                  </div>
+                  <span class="sim-val">{{ "%.4f" | format(t.similarity_score | float) }}</span>
+                </div>
+              {% else %}
+                <span style="color:#4a5568">—</span>
+              {% endif %}
+            </td>
+            <td style="color:#718096;white-space:nowrap;">
+              {{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '—' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" style="text-align:center;color:#718096;padding:2rem;">No thoughts found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  Thoughts Dashboard &mdash; Data read-only, parameterized queries only &mdash;
+  {{ all_thoughts | length }} thoughts shown
+  {% if active_filter != 'all' %} (filtered: {{ active_filter }}){% endif %}
+</footer>
+
+</body>
+</html>

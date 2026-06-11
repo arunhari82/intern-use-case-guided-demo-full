@@ -1,0 +1,47 @@
+# ── Version control ───────────────────────────────────────────
+.git
+.gitignore
+
+# ── Virtual environment (rebuilt inside image) ────────────────
+.venv
+venv
+env
+
+# ── Secrets / local config ────────────────────────────────────
+.env
+.env.local
+.env.*
+
+# ── Python bytecode ───────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ── Test artefacts ────────────────────────────────────────────
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Docs & specs (not needed at runtime) ─────────────────────
+docs/
+specs/
+*.md
+README*
+
+# ── Editor / IDE ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs & OS noise ───────────────────────────────────────────
+*.log
+.DS_Store
+Thumbs.db
+
+# ── Security scan output ──────────────────────────────────────
+sbom.json
+trivy-report.*
